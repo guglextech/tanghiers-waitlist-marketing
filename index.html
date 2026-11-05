@@ -28,26 +28,24 @@
       <section class="content" aria-labelledby="pageTitle">
         <p class="brand">Lottoforecast</p>
 
-        <!-- Step 1: Gate -->
+        <!-- Gate -->
         <div class="step is-active" data-step="gate" id="stepGate">
           <h1 class="title" id="pageTitle">Want an exclusive offer?</h1>
           <p class="sub">It takes 10 seconds.</p>
           <button type="button" class="btn" id="wantOfferBtn">
             Yes, I want it
           </button>
-          <button type="button" class="link-btn" id="declineGateBtn">
+          <button type="button" class="link-btn" data-decline>
             I don't want my offer
           </button>
         </div>
 
-        <!-- Step 2: Email + phone -->
-        <div class="step" data-step="claim" id="stepClaim" hidden>
+        <!-- Email -->
+        <div class="step" data-step="email" id="stepEmail" hidden>
           <h1 class="title">Your exclusive offer is ready</h1>
-          <p class="sub">
-            Enter your email and phone number to claim early access.
-          </p>
+          <p class="sub">Enter your email to reveal it.</p>
 
-          <form class="claim-form" id="claimForm" novalidate>
+          <form class="claim-form" id="emailForm" novalidate>
             <label class="field">
               <span class="sr-only">Email address</span>
               <input
@@ -60,6 +58,33 @@
               />
             </label>
 
+            <p class="form-error" id="emailError" role="alert" hidden></p>
+
+            <button type="submit" class="btn" id="emailNextBtn">
+              Reveal my offer
+            </button>
+          </form>
+
+          <button type="button" class="link-btn" data-decline>
+            I don't want my offer
+          </button>
+
+          <p class="legal">
+            By continuing, you agree to hear from Lottoforecast about early
+            access and offers. See our
+            <a href="#privacy">Privacy Policy</a>.
+          </p>
+        </div>
+
+        <!-- Phone -->
+        <div class="step" data-step="phone" id="stepPhone" hidden>
+          <h1 class="title">You've unlocked early access</h1>
+          <p class="sub">
+            Your offer will be waiting when we launch. Enter your phone number
+            to stay in touch.
+          </p>
+
+          <form class="claim-form" id="phoneForm" novalidate>
             <label class="field">
               <span class="sr-only">Phone number</span>
               <div class="phone">
@@ -68,9 +93,9 @@
                   name="countryCode"
                   aria-label="Country code"
                 >
-                  <option value="+233">🇬🇭 +233</option>
-                  <option value="+1">🇺🇸 +1</option>
+                  <option value="+1" selected>🇺🇸 +1</option>
                   <option value="+44">🇬🇧 +44</option>
+                  <option value="+233">🇬🇭 +233</option>
                   <option value="+234">🇳🇬 +234</option>
                   <option value="+27">🇿🇦 +27</option>
                   <option value="+91">🇮🇳 +91</option>
@@ -87,29 +112,23 @@
               </div>
             </label>
 
-            <p class="form-error" id="formError" role="alert" hidden></p>
+            <p class="form-error" id="phoneError" role="alert" hidden></p>
 
-            <button type="submit" class="btn" id="submitBtn">
-              Reveal my offer
+            <button type="submit" class="btn" id="phoneSubmitBtn">
+              Stay in touch
             </button>
           </form>
 
-          <button type="button" class="link-btn" id="declineClaimBtn">
-            I don't want my offer
+          <button type="button" class="link-btn" id="skipPhoneBtn">
+            Maybe later
           </button>
-
-          <p class="legal">
-            By continuing, you agree to hear from Lottoforecast about early
-            access and offers. See our
-            <a href="#privacy">Privacy Policy</a>.
-          </p>
         </div>
 
-        <!-- Step 3: Success -->
+        <!-- Done -->
         <div class="step" data-step="done" id="stepDone" hidden>
-          <h1 class="title">You've unlocked early access</h1>
+          <h1 class="title">You're on the list</h1>
           <p class="sub">
-            Your offer is locked in. We'll reach out when Lottoforecast opens.
+            We'll reach out when Lottoforecast opens. Your offer is locked in.
           </p>
           <button type="button" class="btn" id="doneBtn">Got it</button>
         </div>

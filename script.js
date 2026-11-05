@@ -2,24 +2,28 @@
   const STORAGE_KEY = "lottoforecast_offer";
 
   const wantOfferBtn = document.getElementById("wantOfferBtn");
-  const declineGateBtn = document.getElementById("declineGateBtn");
-  const declineClaimBtn = document.getElementById("declineClaimBtn");
   const reconsiderBtn = document.getElementById("reconsiderBtn");
+  const skipPhoneBtn = document.getElementById("skipPhoneBtn");
   const doneBtn = document.getElementById("doneBtn");
-  const claimForm = document.getElementById("claimForm");
+  const emailForm = document.getElementById("emailForm");
+  const phoneForm = document.getElementById("phoneForm");
   const emailInput = document.getElementById("email");
   const phoneInput = document.getElementById("phone");
   const countryCode = document.getElementById("countryCode");
   const phoneWrap = document.querySelector(".phone");
-  const submitBtn = document.getElementById("submitBtn");
-  const formError = document.getElementById("formError");
+  const phoneSubmitBtn = document.getElementById("phoneSubmitBtn");
+  const emailError = document.getElementById("emailError");
+  const phoneError = document.getElementById("phoneError");
 
   const steps = {
     gate: document.getElementById("stepGate"),
-    claim: document.getElementById("stepClaim"),
+    email: document.getElementById("stepEmail"),
+    phone: document.getElementById("stepPhone"),
     done: document.getElementById("stepDone"),
     declined: document.getElementById("stepDeclined"),
   };
+
+  let draftEmail = "";
 
   function showStep(name) {
     Object.entries(steps).forEach(function ([key, el]) {
@@ -35,14 +39,14 @@
     if (activeTitle) activeTitle.id = "pageTitle";
   }
 
-  function setError(message) {
+  function setError(el, message) {
     if (!message) {
-      formError.hidden = true;
-      formError.textContent = "";
+      el.hidden = true;
+      el.textContent = "";
       return;
     }
-    formError.hidden = false;
-    formError.textContent = message;
+    el.hidden = false;
+    el.textContent = message;
   }
 
   function isValidEmail(value) {
@@ -68,21 +72,28 @@
   }
 
   wantOfferBtn.addEventListener("click", function () {
-    showStep("claim");
+    showStep("email");
     emailInput.focus();
   });
 
-  declineGateBtn.addEventListener("click", function () {
-    showStep("declined");
-  });
-
-  declineClaimBtn.addEventListener("click", function () {
-    showStep("declined");
+  document.querySelectorAll("[data-decline]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      showStep("declined");
+    });
   });
 
   reconsiderBtn.addEventListener("click", function () {
-    showStep("claim");
+    showStep("email");
     emailInput.focus();
+  });
+
+  skipPhoneBtn.addEventListener("click", function () {
+    saveLead({
+      email: draftEmail,
+      phone: null,
+      claimedAt: new Date().toISOString(),
+    });
+    showStep("done");
   });
 
   doneBtn.addEventListener("click", function () {
@@ -91,62 +102,72 @@
 
   emailInput.addEventListener("input", function () {
     emailInput.classList.remove("is-invalid");
-    setError("");
+    setError(emailError, "");
   });
 
   phoneInput.addEventListener("input", function () {
     phoneWrap.classList.remove("is-invalid");
-    setError("");
+    setError(phoneError, "");
   });
 
-  claimForm.addEventListener("submit", async function (event) {
+  emailForm.addEventListener("submit", function (event) {
     event.preventDefault();
 
     const email = emailInput.value.trim();
-    const phone = phoneInput.value.trim();
-    let valid = true;
-
     emailInput.classList.remove("is-invalid");
-    phoneWrap.classList.remove("is-invalid");
-    setError("");
+    setError(emailError, "");
 
     if (!isValidEmail(email)) {
       emailInput.classList.add("is-invalid");
-      valid = false;
-    }
-
-    if (!isValidPhone(phone)) {
-      phoneWrap.classList.add("is-invalid");
-      valid = false;
-    }
-
-    if (!valid) {
-      setError("Enter a valid email and phone number.");
+      setError(emailError, "Enter a valid email address.");
+      emailInput.focus();
       return;
     }
 
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Claiming…";
+    draftEmail = email.toLowerCase();
+    showStep("phone");
+    phoneInput.focus();
+  });
+
+  phoneForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const phone = phoneInput.value.trim();
+    phoneWrap.classList.remove("is-invalid");
+    setError(phoneError, "");
+
+    if (!isValidPhone(phone)) {
+      phoneWrap.classList.add("is-invalid");
+      setError(phoneError, "Enter a valid phone number.");
+      phoneInput.focus();
+      return;
+    }
+
+    phoneSubmitBtn.disabled = true;
+    phoneSubmitBtn.textContent = "Saving…";
 
     // Hook for Formspree / Netlify Forms / your API:
     // await fetch("https://formspree.io/f/your-id", {
     //   method: "POST",
     //   headers: { "Content-Type": "application/json", Accept: "application/json" },
-    //   body: JSON.stringify({ email, phone: countryCode.value + " " + phone }),
+    //   body: JSON.stringify({
+    //     email: draftEmail,
+    //     phone: countryCode.value + " " + phone,
+    //   }),
     // });
 
     await new Promise(function (resolve) {
-      window.setTimeout(resolve, 500);
+      window.setTimeout(resolve, 450);
     });
 
     saveLead({
-      email: email.toLowerCase(),
+      email: draftEmail,
       phone: countryCode.value + " " + phone,
       claimedAt: new Date().toISOString(),
     });
 
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Reveal my offer";
+    phoneSubmitBtn.disabled = false;
+    phoneSubmitBtn.textContent = "Stay in touch";
     showStep("done");
   });
 
