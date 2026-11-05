@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lottoforecast — Exclusive Offer</title>
+    <meta
+      name="description"
+      content="Claim your exclusive Lottoforecast early-access offer. Enter your email and phone to join the waitlist."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="visual" aria-hidden="true">
+        <img
+          src="assets/offer.jpg"
+          alt=""
+        />
+      </section>
+
+      <section class="content" aria-labelledby="pageTitle">
+        <p class="brand">Lottoforecast</p>
+
+        <!-- Step 1: Gate -->
+        <div class="step is-active" data-step="gate" id="stepGate">
+          <h1 class="title" id="pageTitle">Want an exclusive offer?</h1>
+          <p class="sub">It takes 10 seconds.</p>
+          <button type="button" class="btn" id="wantOfferBtn">
+            Yes, I want it
+          </button>
+          <button type="button" class="link-btn" id="declineGateBtn">
+            I don't want my offer
+          </button>
+        </div>
+
+        <!-- Step 2: Email + phone -->
+        <div class="step" data-step="claim" id="stepClaim" hidden>
+          <h1 class="title">Your exclusive offer is ready</h1>
+          <p class="sub">
+            Enter your email and phone number to claim early access.
+          </p>
+
+          <form class="claim-form" id="claimForm" novalidate>
+            <label class="field">
+              <span class="sr-only">Email address</span>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                autocomplete="email"
+                placeholder="Email address *"
+                required
+              />
+            </label>
+
+            <label class="field">
+              <span class="sr-only">Phone number</span>
+              <div class="phone">
+                <select
+                  id="countryCode"
+                  name="countryCode"
+                  aria-label="Country code"
+                >
+                  <option value="+233">🇬🇭 +233</option>
+                  <option value="+1">🇺🇸 +1</option>
+                  <option value="+44">🇬🇧 +44</option>
+                  <option value="+234">🇳🇬 +234</option>
+                  <option value="+27">🇿🇦 +27</option>
+                  <option value="+91">🇮🇳 +91</option>
+                </select>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  autocomplete="tel-national"
+                  inputmode="tel"
+                  placeholder="Phone number *"
+                  required
+                />
+              </div>
+            </label>
+
+            <p class="form-error" id="formError" role="alert" hidden></p>
+
+            <button type="submit" class="btn" id="submitBtn">
+              Reveal my offer
+            </button>
+          </form>
+
+          <button type="button" class="link-btn" id="declineClaimBtn">
+            I don't want my offer
+          </button>
+
+          <p class="legal">
+            By continuing, you agree to hear from Lottoforecast about early
+            access and offers. See our
+            <a href="#privacy">Privacy Policy</a>.
+          </p>
+        </div>
+
+        <!-- Step 3: Success -->
+        <div class="step" data-step="done" id="stepDone" hidden>
+          <h1 class="title">You've unlocked early access</h1>
+          <p class="sub">
+            Your offer is locked in. We'll reach out when Lottoforecast opens.
+          </p>
+          <button type="button" class="btn" id="doneBtn">Got it</button>
+        </div>
+
+        <!-- Declined -->
+        <div class="step" data-step="declined" id="stepDeclined" hidden>
+          <h1 class="title">No worries</h1>
+          <p class="sub">
+            You can come back anytime when you're ready for early access.
+          </p>
+          <button type="button" class="btn" id="reconsiderBtn">
+            Actually, I want it
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
