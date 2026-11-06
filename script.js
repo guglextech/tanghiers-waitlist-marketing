@@ -18,14 +18,15 @@
   const doneBtn = document.getElementById("doneBtn");
   const emailForm = document.getElementById("emailForm");
   const phoneForm = document.getElementById("phoneForm");
-  const nameInput = document.getElementById("name");
+  const consentForm = document.getElementById("consentForm");
   const emailInput = document.getElementById("email");
   const phoneInput = document.getElementById("phone");
   const countryCode = document.getElementById("countryCode");
   const phoneWrap = document.querySelector(".phone");
-  const phoneSubmitBtn = document.getElementById("phoneSubmitBtn");
+  const consentSubmitBtn = document.getElementById("consentSubmitBtn");
   const emailError = document.getElementById("emailError");
   const phoneError = document.getElementById("phoneError");
+  const consentError = document.getElementById("consentError");
   const consentAge = document.getElementById("consentAge");
   const consentPrivacy = document.getElementById("consentPrivacy");
   const consentAgeText = document.getElementById("consentAgeText");
@@ -36,11 +37,12 @@
     gate: document.getElementById("stepGate"),
     email: document.getElementById("stepEmail"),
     phone: document.getElementById("stepPhone"),
+    consents: document.getElementById("stepConsents"),
     done: document.getElementById("stepDone"),
     declined: document.getElementById("stepDeclined"),
   };
 
-  const draft = { name: "", email: "" };
+  const draft = { email: "", phone: "", countryCode: "US", phonePrefix: "+1" };
   let consentVersions = {
     age: DEFAULT_CONSENTS.AGE.version,
     privacy: DEFAULT_CONSENTS.PRIVACY.version,
@@ -80,8 +82,20 @@
   }
 
   function formatPhone(prefix, local) {
-    const digits = local.replace(/\D/g, "");
-    return prefix + " " + digits;
+    return prefix + " " + local.replace(/\D/g, "");
+  }
+
+  function nameFromEmail(email) {
+    const local = email.split("@")[0] || "Guest";
+    return local
+      .replace(/[._+-]+/g, " ")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(function (part) {
+        return part.charAt(0).toUpperCase() + part.slice(1);
+      })
+      .join(" ") || "Guest";
   }
 
   function saveLead(payload) {
@@ -155,7 +169,7 @@
 
   wantOfferBtn.addEventListener("click", function () {
     showStep("email");
-    nameInput.focus();
+    emailInput.focus();
   });
 
   document.querySelectorAll("[data-decline]").forEach(function (btn) {
@@ -166,18 +180,16 @@
 
   reconsiderBtn.addEventListener("click", function () {
     showStep("email");
-    nameInput.focus();
+    emailInput.focus();
   });
 
   doneBtn.addEventListener("click", function () {
     showStep("done");
   });
 
-  [nameInput, emailInput].forEach(function (input) {
-    input.addEventListener("input", function () {
-      input.classList.remove("is-invalid");
-      setError(emailError, "");
-    });
+  emailInput.addEventListener("input", function () {
+    emailInput.classList.remove("is-invalid");
+    setError(emailError, "");
   });
 
   phoneInput.addEventListener("input", function () {
@@ -187,27 +199,17 @@
 
   [consentAge, consentPrivacy].forEach(function (input) {
     input.addEventListener("change", function () {
-      input.closest(".check").classList.remove("is-invalid");
-      setError(phoneError, "");
+      input.closest(".toggle").classList.remove("is-invalid");
+      setError(consentError, "");
     });
   });
 
   emailForm.addEventListener("submit", function (event) {
     event.preventDefault();
 
-    const name = nameInput.value.trim();
     const email = emailInput.value.trim();
-
-    nameInput.classList.remove("is-invalid");
     emailInput.classList.remove("is-invalid");
     setError(emailError, "");
-
-    if (!name) {
-      nameInput.classList.add("is-invalid");
-      setError(emailError, "Enter your full name.");
-      nameInput.focus();
-      return;
-    }
 
     if (!isValidEmail(email)) {
       emailInput.classList.add("is-invalid");
@@ -216,22 +218,16 @@
       return;
     }
 
-    draft.name = name;
     draft.email = email.toLowerCase();
     showStep("phone");
     phoneInput.focus();
   });
 
-  phoneForm.addEventListener("submit", async function (event) {
+  phoneForm.addEventListener("submit", function (event) {
     event.preventDefault();
 
     const phone = phoneInput.value.trim();
-    const ageOk = consentAge.checked;
-    const privacyOk = consentPrivacy.checked;
-
     phoneWrap.classList.remove("is-invalid");
-    consentAge.closest(".check").classList.remove("is-invalid");
-    consentPrivacy.closest(".check").classList.remove("is-invalid");
     setError(phoneError, "");
 
     if (!isValidPhone(phone)) {
@@ -241,27 +237,46 @@
       return;
     }
 
+    const selected = countryCode.options[countryCode.selectedIndex];
+    draft.phone = formatPhone(countryCode.value, phone);
+    draft.phonePrefix = countryCode.value;
+    draft.countryCode = selected.getAttribute("data-iso") || "US";
+
+    showStep("consents");
+  });
+
+  consentForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const ageOk = consentAge.checked;
+    const privacyOk = consentPrivacy.checked;
+
+    consentAge.closest(".toggle").classList.remove("is-invalid");
+    consentPrivacy.closest(".toggle").classList.remove("is-invalid");
+    setError(consentError, "");
+
     if (!ageOk || !privacyOk) {
-      if (!ageOk) consentAge.closest(".check").classList.add("is-invalid");
-      if (!privacyOk) consentPrivacy.closest(".check").classList.add("is-invalid");
-      setError(phoneError, "Please accept the required consents.");
+      if (!ageOk) consentAge.closest(".toggle").classList.add("is-invalid");
+      if (!privacyOk) {
+        consentPrivacy.closest(".toggle").classList.add("is-invalid");
+      }
+      setError(consentError, "Turn on both toggles to continue.");
       return;
     }
 
-    const selected = countryCode.options[countryCode.selectedIndex];
     const payload = {
-      name: draft.name,
+      name: nameFromEmail(draft.email),
       email: draft.email,
-      phone: formatPhone(countryCode.value, phone),
-      countryCode: selected.getAttribute("data-iso") || "US",
+      phone: draft.phone,
+      countryCode: draft.countryCode,
       consents: {
         age: consentVersions.age,
         privacy: consentVersions.privacy,
       },
     };
 
-    phoneSubmitBtn.disabled = true;
-    phoneSubmitBtn.textContent = "Saving…";
+    consentSubmitBtn.disabled = true;
+    consentSubmitBtn.textContent = "Saving…";
 
     try {
       const result = await joinWaitlist(payload);
@@ -278,12 +293,12 @@
       showStep("done");
     } catch (error) {
       setError(
-        phoneError,
+        consentError,
         error.message || "Something went wrong. Please try again."
       );
     } finally {
-      phoneSubmitBtn.disabled = false;
-      phoneSubmitBtn.textContent = "Stay in touch";
+      consentSubmitBtn.disabled = false;
+      consentSubmitBtn.textContent = "Stay in touch";
     }
   });
 
@@ -291,9 +306,7 @@
 
   const existing = getLead();
   if (existing) {
-    if (existing.email) {
-      doneMessage.textContent = "You're on the list. Check your email.";
-    }
+    doneMessage.textContent = "You're on the list. Check your email.";
     showStep("done");
   } else {
     showStep("gate");

@@ -40,24 +40,12 @@
           </button>
         </div>
 
-        <!-- Name + email -->
+        <!-- Email only -->
         <div class="step" data-step="email" id="stepEmail" hidden>
           <h1 class="title">Your exclusive offer is ready</h1>
-          <p class="sub">Enter your details to reveal it.</p>
+          <p class="sub">Enter your email to reveal it.</p>
 
           <form class="claim-form" id="emailForm" novalidate>
-            <label class="field">
-              <span class="sr-only">Full name</span>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                autocomplete="name"
-                placeholder="Full name *"
-                required
-              />
-            </label>
-
             <label class="field">
               <span class="sr-only">Email address</span>
               <input
@@ -72,9 +60,7 @@
 
             <p class="form-error" id="emailError" role="alert" hidden></p>
 
-            <button type="submit" class="btn" id="emailNextBtn">
-              Reveal my offer
-            </button>
+            <button type="submit" class="btn">Reveal my offer</button>
           </form>
 
           <button type="button" class="link-btn" data-decline>
@@ -82,12 +68,11 @@
           </button>
         </div>
 
-        <!-- Phone + consents -->
+        <!-- Phone only -->
         <div class="step" data-step="phone" id="stepPhone" hidden>
           <h1 class="title">You've unlocked early access</h1>
           <p class="sub">
-            Your offer will be waiting when we launch. Enter your phone number
-            to stay in touch.
+            Enter your phone number to stay in touch.
           </p>
 
           <form class="claim-form" id="phoneForm" novalidate>
@@ -118,20 +103,51 @@
               </div>
             </label>
 
+            <p class="form-error" id="phoneError" role="alert" hidden></p>
+
+            <button type="submit" class="btn">Continue</button>
+          </form>
+
+          <button type="button" class="link-btn" data-decline>
+            I don't want my offer
+          </button>
+        </div>
+
+        <!-- Consents -->
+        <div class="step" data-step="consents" id="stepConsents" hidden>
+          <h1 class="title">Almost there</h1>
+          <p class="sub">Confirm a couple of things to join the list.</p>
+
+          <form class="claim-form" id="consentForm" novalidate>
             <div class="consents" id="consents">
-              <label class="check">
-                <input type="checkbox" id="consentAge" required />
-                <span id="consentAgeText">I confirm I am 18 years of age or older.</span>
+              <label class="toggle">
+                <input type="checkbox" id="consentAge" class="toggle__input" />
+                <span class="toggle__track" aria-hidden="true">
+                  <span class="toggle__thumb"></span>
+                </span>
+                <span class="toggle__label" id="consentAgeText">
+                  I confirm I am 18 years of age or older.
+                </span>
               </label>
-              <label class="check">
-                <input type="checkbox" id="consentPrivacy" required />
-                <span id="consentPrivacyText">I have read the Privacy Policy.</span>
+
+              <label class="toggle">
+                <input
+                  type="checkbox"
+                  id="consentPrivacy"
+                  class="toggle__input"
+                />
+                <span class="toggle__track" aria-hidden="true">
+                  <span class="toggle__thumb"></span>
+                </span>
+                <span class="toggle__label" id="consentPrivacyText">
+                  I have read the Privacy Policy.
+                </span>
               </label>
             </div>
 
-            <p class="form-error" id="phoneError" role="alert" hidden></p>
+            <p class="form-error" id="consentError" role="alert" hidden></p>
 
-            <button type="submit" class="btn" id="phoneSubmitBtn">
+            <button type="submit" class="btn" id="consentSubmitBtn">
               Stay in touch
             </button>
           </form>
