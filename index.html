@@ -40,12 +40,24 @@
           </button>
         </div>
 
-        <!-- Email -->
+        <!-- Name + email -->
         <div class="step" data-step="email" id="stepEmail" hidden>
           <h1 class="title">Your exclusive offer is ready</h1>
-          <p class="sub">Enter your email to reveal it.</p>
+          <p class="sub">Enter your details to reveal it.</p>
 
           <form class="claim-form" id="emailForm" novalidate>
+            <label class="field">
+              <span class="sr-only">Full name</span>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                autocomplete="name"
+                placeholder="Full name *"
+                required
+              />
+            </label>
+
             <label class="field">
               <span class="sr-only">Email address</span>
               <input
@@ -68,15 +80,9 @@
           <button type="button" class="link-btn" data-decline>
             I don't want my offer
           </button>
-
-          <p class="legal">
-            By continuing, you agree to hear from Lottoforecast about early
-            access and offers. See our
-            <a href="#privacy">Privacy Policy</a>.
-          </p>
         </div>
 
-        <!-- Phone -->
+        <!-- Phone + consents -->
         <div class="step" data-step="phone" id="stepPhone" hidden>
           <h1 class="title">You've unlocked early access</h1>
           <p class="sub">
@@ -93,12 +99,12 @@
                   name="countryCode"
                   aria-label="Country code"
                 >
-                  <option value="+1" selected>🇺🇸 +1</option>
-                  <option value="+44">🇬🇧 +44</option>
-                  <option value="+233">🇬🇭 +233</option>
-                  <option value="+234">🇳🇬 +234</option>
-                  <option value="+27">🇿🇦 +27</option>
-                  <option value="+91">🇮🇳 +91</option>
+                  <option value="+1" data-iso="US" selected>🇺🇸 +1</option>
+                  <option value="+44" data-iso="GB">🇬🇧 +44</option>
+                  <option value="+233" data-iso="GH">🇬🇭 +233</option>
+                  <option value="+234" data-iso="NG">🇳🇬 +234</option>
+                  <option value="+27" data-iso="ZA">🇿🇦 +27</option>
+                  <option value="+91" data-iso="IN">🇮🇳 +91</option>
                 </select>
                 <input
                   type="tel"
@@ -112,6 +118,17 @@
               </div>
             </label>
 
+            <div class="consents" id="consents">
+              <label class="check">
+                <input type="checkbox" id="consentAge" required />
+                <span id="consentAgeText">I confirm I am 18 years of age or older.</span>
+              </label>
+              <label class="check">
+                <input type="checkbox" id="consentPrivacy" required />
+                <span id="consentPrivacyText">I have read the Privacy Policy.</span>
+              </label>
+            </div>
+
             <p class="form-error" id="phoneError" role="alert" hidden></p>
 
             <button type="submit" class="btn" id="phoneSubmitBtn">
@@ -119,15 +136,15 @@
             </button>
           </form>
 
-          <button type="button" class="link-btn" id="skipPhoneBtn">
-            Maybe later
+          <button type="button" class="link-btn" data-decline>
+            I don't want my offer
           </button>
         </div>
 
         <!-- Done -->
         <div class="step" data-step="done" id="stepDone" hidden>
           <h1 class="title">You're on the list</h1>
-          <p class="sub">
+          <p class="sub" id="doneMessage">
             We'll reach out when Lottoforecast opens. Your offer is locked in.
           </p>
           <button type="button" class="btn" id="doneBtn">Got it</button>

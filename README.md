@@ -1,14 +1,15 @@
 # Lottoforecast Waitlist
 
-Full-page early-access offer for [Lottoforecast.com](https://lottoforecast.com). Collects email and phone.
+Full-page early-access offer for [Lottoforecast.com](https://lottoforecast.com).
 
 ## Flow
 
-1. **Want an exclusive offer?**  
-2. **Claim** — email + phone  
-3. **Unlocked** confirmation  
+1. Want an exclusive offer?
+2. Name + email
+3. Phone + age/privacy consents
+4. Confirmation
 
-Leads save to `localStorage`. Wire a real endpoint in `script.js` where noted.
+Posts to `POST https://tanghiers-forecast-api.onrender.com/v1/waitlist`. Consent copy/versions load from `GET /v1/legal/consents`.
 
 ## Run
 
