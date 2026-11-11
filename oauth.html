@@ -1,0 +1,320 @@
+<!doctype html>
+<!--
+  Google sign-in / sign-up against the deployed API. No build step.
+
+  Set GOOGLE_CLIENT_ID in the script below (a value from GOOGLE_CLIENT_IDS on
+  Render; it is public, not a secret), then:
+
+    python3 -m http.server 5173 --directory samples/google-signin
+    open http://localhost:5173
+
+  Google only shows its button on an origin listed under the OAuth client's
+  "Authorised JavaScript origins", so use exactly http://localhost:5173.
+
+  Flow:
+    Google button → ID token → POST /v1/auth/social/google
+      tokens          existing user, signed in
+      signupRequired  new user: show the form → POST /v1/auth/social/complete
+      mfaRequired     admin: needs the authenticator step (not part of this sample)
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Google Sign-in Sample</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --border: #8884;
+        --error: #c62828;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font: 16px/1.5 system-ui, sans-serif;
+        max-width: 30rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      h1 {
+        font-size: 1.4rem;
+      }
+      section {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.75rem;
+      }
+      label.check {
+        display: flex;
+        gap: 0.5rem;
+        align-items: flex-start;
+      }
+      input:not([type='checkbox']),
+      select {
+        display: block;
+        width: 100%;
+        padding: 0.5rem;
+        font: inherit;
+      }
+      button {
+        padding: 0.5rem 1rem;
+        font: inherit;
+        cursor: pointer;
+      }
+      pre {
+        overflow-x: auto;
+        font-size: 0.85rem;
+      }
+      #error {
+        color: var(--error);
+      }
+      [hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Sign in or create an account</h1>
+
+    <section id="sign-in" hidden>
+      <div id="google-button"></div>
+    </section>
+
+    <form id="signup" hidden>
+      <p>Finish creating the account for <strong id="signup-email"></strong>.</p>
+      <label>First name <input id="first-name" maxlength="100" /></label>
+      <label>Last name <input id="last-name" maxlength="100" /></label>
+      <label>
+        Country (optional)
+        <select id="country"></select>
+      </label>
+      <label>Phone (optional) <input id="phone" type="tel" placeholder="+1 415 555 0100" /></label>
+      <label>Date of birth (optional) <input id="dob" type="date" /></label>
+      <div id="consents"></div>
+      <button type="submit">Create account</button>
+    </form>
+
+    <section id="account" hidden>
+      <p id="account-title"></p>
+      <pre id="profile"></pre>
+      <button id="sign-out" type="button">Sign out</button>
+    </section>
+
+    <p id="error" role="alert"></p>
+
+    <script type="module">
+      const GOOGLE_CLIENT_ID = '146858249619-qp8g1gl0lgaepf598e06qire2ci3918j.apps.googleusercontent.com';
+      const API_URL = 'https://tanghiers-forecast-api.onrender.com';
+      const GSI_URL = 'https://accounts.google.com/gsi/client';
+      /** Free-tier Render sleeps when idle and can take about a minute to wake. */
+      const REQUEST_TIMEOUT_MS = 90_000;
+
+      /** Consent keys in the API's list → field names on POST /auth/social/complete. */
+      const CONSENT_FIELDS = [
+        { kind: 'TERMS', field: 'terms', required: true },
+        { kind: 'PRIVACY', field: 'privacy', required: true },
+        { kind: 'AGE', field: 'age', required: true },
+        { kind: 'SMS', field: 'sms', required: false },
+        { kind: 'EMAIL_MARKETING', field: 'emailMarketing', required: false },
+      ];
+
+      const $ = (id) => document.getElementById(id);
+
+      /** Kept in memory on purpose: a real app should not put these in localStorage. */
+      let session = null;
+      let nonce = null;
+      let signupToken = null;
+      let consentCatalogue = {};
+
+      function showError(error) {
+        $('error').textContent = error ? (error.message ?? String(error)) : '';
+      }
+
+      function show(...visible) {
+        for (const id of ['sign-in', 'signup', 'account']) {
+          $(id).hidden = !visible.includes(id);
+        }
+      }
+
+      /** Successes arrive as { success: true, data }, failures as { success: false, message }. */
+      async function api(path, { body, accessToken } = {}) {
+        const response = await fetch(`${API_URL}/v1${path}`, {
+          method: body ? 'POST' : 'GET',
+          headers: {
+            ...(body && { 'content-type': 'application/json' }),
+            ...(accessToken && { authorization: `Bearer ${accessToken}` }),
+          },
+          body: body && JSON.stringify(body),
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+        if (response.status === 204) return null;
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          const message = [payload?.message ?? `Request failed (${response.status})`].flat();
+          throw new Error(message.join(' '));
+        }
+        return payload.data;
+      }
+
+      function loadGoogleScript() {
+        if (window.google?.accounts?.id) return Promise.resolve();
+        return new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = GSI_URL;
+          script.onload = resolve;
+          script.onerror = () => reject(new Error('Could not load Google Identity Services.'));
+          document.head.append(script);
+        });
+      }
+
+      function renderGoogleButton() {
+        // Google copies the nonce into the ID token and the API checks the two match.
+        nonce = crypto.randomUUID();
+        google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: onGoogleCredential,
+          nonce,
+        });
+        $('google-button').replaceChildren();
+        google.accounts.id.renderButton($('google-button'), {
+          theme: 'outline',
+          size: 'large',
+          text: 'continue_with',
+        });
+        show('sign-in');
+      }
+
+      async function onGoogleCredential({ credential }) {
+        showError(null);
+        try {
+          await handleAuthResult(
+            await api('/auth/social/google', { body: { idToken: credential, nonce } }),
+          );
+        } catch (error) {
+          showError(error);
+          renderGoogleButton(); // a nonce is single-use, so a retry needs a fresh one
+        }
+      }
+
+      /** /auth/social/google and /auth/social/complete share this response shape. */
+      async function handleAuthResult(result) {
+        if (result.signupRequired) {
+          signupToken = result.signupToken;
+          await showSignupForm(result.profile);
+        } else if (result.mfaRequired) {
+          show('sign-in');
+          showError(
+            result.mfaEnrollmentRequired
+              ? 'Admin account: authenticator enrolment is required, which this sample does not cover.'
+              : 'Admin account: an authenticator code is required, which this sample does not cover.',
+          );
+        } else {
+          session = result.tokens;
+          await showAccount();
+        }
+      }
+
+      async function showSignupForm(profile) {
+        const [consents, countries] = await Promise.all([
+          api('/legal/consents'),
+          api('/countries'),
+        ]);
+        consentCatalogue = consents;
+
+        $('signup-email').textContent = profile.email;
+        $('first-name').value = profile.firstName ?? '';
+        $('last-name').value = profile.lastName ?? '';
+
+        $('country').replaceChildren(
+          new Option('Not specified', ''),
+          ...countries.map((country) => new Option(country.name, country.code)),
+        );
+
+        // Every box starts unticked: SMS consent in particular must be an active opt-in.
+        $('consents').replaceChildren(
+          ...CONSENT_FIELDS.filter(({ kind }) => consents[kind]).map(({ kind, field, required }) => {
+            const label = document.createElement('label');
+            label.className = 'check';
+            const box = document.createElement('input');
+            box.type = 'checkbox';
+            box.name = field;
+            box.dataset.kind = kind;
+            box.required = required;
+            label.append(box, document.createTextNode(consents[kind].text));
+            return label;
+          }),
+        );
+        show('signup');
+      }
+
+      async function submitSignup(event) {
+        event.preventDefault();
+        showError(null);
+        const consents = {};
+        for (const box of $('consents').querySelectorAll('input:checked')) {
+          consents[box.name] = consentCatalogue[box.dataset.kind].version;
+        }
+        const optional = {
+          firstName: $('first-name').value.trim(),
+          lastName: $('last-name').value.trim(),
+          countryCode: $('country').value,
+          phone: $('phone').value.trim(),
+          dateOfBirth: $('dob').value,
+        };
+        const body = {
+          signupToken,
+          consents,
+          // Blank fields are left out: the API validates anything it receives.
+          ...Object.fromEntries(Object.entries(optional).filter(([, value]) => value)),
+        };
+        try {
+          await handleAuthResult(await api('/auth/social/complete', { body }));
+        } catch (error) {
+          showError(error);
+        }
+      }
+
+      async function showAccount() {
+        const me = await api('/me', { accessToken: session.accessToken });
+        $('account-title').textContent = `Signed in as ${me.email}`;
+        $('profile').textContent = JSON.stringify(me, null, 2);
+        show('account');
+      }
+
+      async function signOut() {
+        showError(null);
+        try {
+          await api('/auth/logout', { body: { refreshToken: session.refreshToken } });
+        } catch (error) {
+          showError(error);
+        }
+        session = null;
+        google.accounts.id.disableAutoSelect();
+        renderGoogleButton();
+      }
+
+      async function start() {
+        if (!GOOGLE_CLIENT_ID) {
+          showError('Developer setup: set GOOGLE_CLIENT_ID at the top of the script in this file.');
+          return;
+        }
+        try {
+          await loadGoogleScript();
+          renderGoogleButton();
+        } catch (error) {
+          showError(error);
+        }
+      }
+
+      $('signup').addEventListener('submit', submitSignup);
+      $('sign-out').addEventListener('click', signOut);
+      start();
+    </script>
+  </body>
+</html>
